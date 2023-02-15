@@ -23,6 +23,20 @@ type CompletionStream struct {
 
 func (stream *CompletionStream) Recv() (response CompletionResponse, err error) {
 	emptyMessagesCount := 0
+	if stream.response.StatusCode < http.StatusOK ||
+		stream.response.StatusCode >= http.StatusBadRequest {
+		var dataByt []byte
+		if _, err = stream.reader.Read(dataByt); err != nil {
+			return
+		}
+		errResp := &ErrorResponse{}
+		if err = json.Unmarshal(dataByt, errResp); err != nil {
+			return
+		}
+
+		err = fmt.Errorf(errResp.Error.Error())
+		return
+	}
 
 waitForData:
 	line, err := stream.reader.ReadBytes('\n')
